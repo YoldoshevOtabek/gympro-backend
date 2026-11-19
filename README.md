@@ -21,6 +21,9 @@ npm run dev
 
 API base: `http://localhost:4000/api/v1`
 
+**Swagger UI:** [http://localhost:4000/api/docs](http://localhost:4000/api/docs)  
+OpenAPI JSON: `http://localhost:4000/api/docs/openapi.json`
+
 ### Demo login (after seed)
 
 | Field | Value |
