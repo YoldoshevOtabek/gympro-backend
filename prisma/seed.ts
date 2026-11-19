@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Member } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -170,7 +170,7 @@ async function main() {
     "Reed",
   ];
 
-  const members = [];
+  const members: Member[] = [];
   for (let i = 0; i < 120; i++) {
     const plan = planPool[i % planPool.length];
     const member = await prisma.member.create({
