@@ -15,15 +15,20 @@ export function errorHandler(
     });
   }
   console.error(err);
+  const isProd = env.nodeEnv === "production";
+  let message = "Internal server error";
+  if (!isProd && err instanceof Error) {
+    message = err.message;
+  } else if (
+    isProd &&
+    err instanceof Error &&
+    /DATABASE_URL|datasource|prisma/i.test(err.message)
+  ) {
+    message =
+      "Database is not configured. On Render, attach a PostgreSQL database and set DATABASE_URL.";
+  }
   return res.status(500).json({
     success: false,
-    error: {
-      message:
-        env.nodeEnv === "production"
-          ? "Internal server error"
-          : err instanceof Error
-            ? err.message
-            : "Unknown error",
-    },
+    error: { message },
   });
 }

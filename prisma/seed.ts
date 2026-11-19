@@ -4,22 +4,16 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.classBooking.deleteMany();
-  await prisma.scheduleClass.deleteMany();
-  await prisma.attendance.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.member.deleteMany();
-  await prisma.visitor.deleteMany();
-  await prisma.equipment.deleteMany();
-  await prisma.trainer.deleteMany();
-  await prisma.gymZone.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.setting.deleteMany();
-  await prisma.revenueMonthly.deleteMany();
-  await prisma.occupancyHourly.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.membershipPlan.deleteMany();
-  await prisma.location.deleteMany();
+  const existingLocation = await prisma.location.findUnique({
+    where: {
+      slug: "downtown-flagship",
+    },
+  });
+
+  if (existingLocation) {
+    console.log("Seed already exists. Skipping...");
+    return;
+  }
 
   const location = await prisma.location.create({
     data: {

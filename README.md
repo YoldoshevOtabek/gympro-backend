@@ -5,7 +5,7 @@ Backend for the **GYMPRO** admin panel (Figma): dashboard KPIs, members, leads, 
 ## Stack
 
 - **Node.js** + **Express** + **TypeScript**
-- **Prisma** + **SQLite** (dev); switch to PostgreSQL via `DATABASE_URL`
+- **Prisma** + **PostgreSQL** (Render va local `docker compose`)
 - **JWT** auth with roles: `ADMIN`, `GENERAL_MANAGER`, `STAFF`, `TRAINER`
 
 ## Quick start
@@ -13,6 +13,7 @@ Backend for the **GYMPRO** admin panel (Figma): dashboard KPIs, members, leads, 
 ```bash
 cd gym-backend
 cp .env.example .env
+docker compose up -d
 npm install
 npm run db:push
 npm run db:seed
@@ -74,7 +75,16 @@ const api = axios.create({
 });
 ```
 
+## Deploy on Render
+
+Render SQLite ishlamaydi — **PostgreSQL** kerak.
+
+1. Render da **PostgreSQL** yarating.
+2. Web service **Environment** da `DATABASE_URL` = Postgres **Internal Database URL** (`postgresql://...`, `file:` emas).
+3. `NODE_ENV=production`, mustahkam `JWT_SECRET`.
+4. Birinchi deploy: `SEED_DATABASE=true` (demo user uchun), keyin o‘chiring.
+5. **Build:** `npm install && npm run build` · **Start:** `npm start` (schema avtomatik `db push`).
+
 ## Production notes
 
 - Change `JWT_SECRET` and disable `POST /auth/bootstrap` (already blocked in production).
-- Use PostgreSQL: `DATABASE_URL="postgresql://..."` and `provider = "postgresql"` in `prisma/schema.prisma`.
