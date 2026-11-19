@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  GENERAL_MANAGER
+  STAFF
+  TRAINER
+}
+
+enum MemberStatus {
+  ACTIVE
+  PAUSED
+  GRACE
+  INACTIVE
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+  SEMESTER
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+enum VisitorStatus {
+  TRIAL
+  DROP_IN
+  GUEST_PASS
+  CONVERTED
+  LOST
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum ClassStatus {
+  SCHEDULED
+  IN_SESSION
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  MEMBERSHIP_EXPIRING
+  PAYMENT_FAILED
+  CAPACITY_ALERT
+  LEAD_NEW
+  SYSTEM
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         UserRole @default(STAFF)
+  avatarUrl    String?
+  phone        String?
+  locationId   String?
+  location     Location? @relation(fields: [locationId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  notifications Notification[]
+}
+
+model Location {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  address      String?
+  capacity     Int      @default(250)
+  timezone     String   @default("America/New_York")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  users        User[]
+  members      Member[]
+  visitors     Visitor[]
+  trainers     Trainer[]
+  equipment    Equipment[]
+  gymZones     GymZone[]
+  classes      ScheduleClass[]
+  payments     Payment[]
+  attendances  Attendance[]
+  settings     Setting[]
+}
+
+model MembershipPlan {
+  id            String       @id @default(cuid())
+  name          String
+  slug          String       @unique
+  tier          String
+  billingCycle  BillingCycle
+  priceCents    Int
+  description   String?
+  features      String       @default("[]")
+  isActive      Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  members       Member[]
+}
+
+model Member {
+  id              String        @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String        @unique
+  phone           String?
+  rfidTag         String?       @unique
+  status          MemberStatus  @default(ACTIVE)
+  planId          String
+  plan            MembershipPlan @relation(fields: [planId], references: [id])
+  locationId      String
+  location        Location      @relation(fields: [locationId], references: [id])
+  joinedAt        DateTime      @default(now())
+  expiresAt       DateTime?
+  pausedUntil     DateTime?
+  autoRenew       Boolean       @default(true)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  payments        Payment[]
+  attendances     Attendance[]
+  classBookings   ClassBooking[]
+  visitorId       String?       @unique
+  visitor         Visitor?      @relation(fields: [visitorId], references: [id])
+}
+
+model Visitor {
+  id            String        @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  interests     String?
+  status        VisitorStatus @default(TRIAL)
+  locationId    String
+  location      Location      @relation(fields: [locationId], references: [id])
+  arrivedAt     DateTime      @default(now())
+  convertedAt   DateTime?
+  notes         String?
+  member        Member?
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  memberId      String
+  member        Member        @relation(fields: [memberId], references: [id])
+  locationId    String
+  location      Location      @relation(fields: [locationId], references: [id])
+  amountCents   Int
+  currency      String        @default("USD")
+  status        PaymentStatus @default(PAID)
+  description   String?
+  invoiceNumber String?       @unique
+  paidAt        DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+}
+
+model Attendance {
+  id            String    @id @default(cuid())
+  memberId      String
+  member        Member    @relation(fields: [memberId], references: [id])
+  locationId    String
+  location      Location  @relation(fields: [locationId], references: [id])
+  zoneId        String?
+  zone          GymZone?  @relation(fields: [zoneId], references: [id])
+  checkedInAt   DateTime  @default(now())
+  checkedOutAt  DateTime?
+}
+
+model Trainer {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  phone         String?
+  specialty     String?
+  bio           String?
+  hourlyRateCents Int?
+  isActive      Boolean  @default(true)
+  locationId    String
+  location      Location @relation(fields: [locationId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  classes       ScheduleClass[]
+}
+
+model ScheduleClass {
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  trainerId     String?
+  trainer       Trainer?    @relation(fields: [trainerId], references: [id])
+  locationId    String
+  location      Location    @relation(fields: [locationId], references: [id])
+  zoneId        String?
+  zone          GymZone?    @relation(fields: [zoneId], references: [id])
+  startsAt      DateTime
+  endsAt        DateTime
+  capacity      Int         @default(30)
+  status        ClassStatus @default(SCHEDULED)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  bookings      ClassBooking[]
+}
+
+model ClassBooking {
+  id         String        @id @default(cuid())
+  classId    String
+  class      ScheduleClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  memberId   String
+  member     Member        @relation(fields: [memberId], references: [id])
+  bookedAt   DateTime      @default(now())
+  attended   Boolean       @default(false)
+
+  @@unique([classId, memberId])
+}
+
+model Equipment {
+  id              String          @id @default(cuid())
+  name            String
+  category        String
+  serialNumber    String?
+  status          EquipmentStatus @default(OPERATIONAL)
+  locationId      String
+  location        Location        @relation(fields: [locationId], references: [id])
+  lastMaintained  DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model GymZone {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String
+  capacity      Int
+  locationId    String
+  location      Location @relation(fields: [locationId], references: [id])
+  attendances   Attendance[]
+  classes       ScheduleClass[]
+
+  @@unique([locationId, slug])
+}
+
+model OccupancyHourly {
+  id            String   @id @default(cuid())
+  locationId    String
+  hour          Int
+  percent       Float
+  checkedIn     Int
+  recordedFor   DateTime
+}
+
+model RevenueMonthly {
+  id            String   @id @default(cuid())
+  year          Int
+  month         Int
+  vipCents      Int      @default(0)
+  eliteCents    Int      @default(0)
+  standardCents Int      @default(0)
+  totalCents    Int      @default(0)
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id])
+  type        NotificationType
+  title       String
+  body        String
+  read        Boolean          @default(false)
+  metadata    String?
+  createdAt   DateTime         @default(now())
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
+  key         String
+  value       String
+  updatedAt   DateTime @updatedAt
+
+  @@unique([locationId, key])
+}
