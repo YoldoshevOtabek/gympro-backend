@@ -1,15 +1,41 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
 import { env } from "../config/env.js";
 import { AppError } from "../lib/errors.js";
-import type { AuthPayload } from "../middleware/auth.js";
+import {
+  issueTokenPair,
+  revokeRefreshToken,
+  rotateRefreshToken,
+} from "../lib/tokens.js";
 
-function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, env.jwtSecret, {
-    expiresIn: env.jwtExpiresIn as jwt.SignOptions["expiresIn"],
-  });
+function authResponse(
+  tokens: Awaited<ReturnType<typeof issueTokenPair>>,
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    role: string;
+    avatarUrl: string | null;
+    location: unknown;
+  }
+) {
+  return {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresIn: tokens.expiresIn,
+    refreshExpiresIn: tokens.refreshExpiresIn,
+    /** @deprecated use accessToken */
+    token: tokens.accessToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+      location: user.location,
+    },
+  };
 }
 
 export async function login(req: Request, res: Response) {
@@ -22,7 +48,7 @@ export async function login(req: Request, res: Response) {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) throw new AppError(401, "Invalid email or password");
 
-  const token = signToken({
+  const tokens = await issueTokenPair({
     userId: user.id,
     role: user.role,
     locationId: user.locationId,
@@ -30,18 +56,36 @@ export async function login(req: Request, res: Response) {
 
   res.json({
     success: true,
-    data: {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-        location: user.location,
-      },
-    },
+    data: authResponse(tokens, user),
   });
+}
+
+export async function refresh(req: Request, res: Response) {
+  const { refreshToken } = req.body as { refreshToken: string };
+  if (!refreshToken) throw new AppError(400, "refreshToken is required");
+
+  const result = await rotateRefreshToken(refreshToken);
+  if (!result) throw new AppError(401, "Invalid or expired refresh token");
+
+  const user = await prisma.user.findUnique({
+    where: { id: result.userId },
+    include: { location: true },
+  });
+  if (!user) throw new AppError(401, "User not found");
+
+  const { userId: _userId, ...tokens } = result;
+  res.json({
+    success: true,
+    data: authResponse(tokens, user),
+  });
+}
+
+export async function logout(req: Request, res: Response) {
+  const { refreshToken } = req.body as { refreshToken?: string };
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken);
+  }
+  res.json({ success: true, data: { loggedOut: true } });
 }
 
 export async function getMe(req: Request, res: Response) {
@@ -86,11 +130,15 @@ export async function bootstrapAdmin(req: Request, res: Response) {
       role: "ADMIN",
       locationId: body.locationId,
     },
+    include: { location: true },
   });
-  const token = signToken({
+  const tokens = await issueTokenPair({
     userId: user.id,
     role: user.role,
     locationId: user.locationId,
   });
-  res.status(201).json({ success: true, data: { token, userId: user.id } });
+  res.status(201).json({
+    success: true,
+    data: authResponse(tokens, user),
+  });
 }

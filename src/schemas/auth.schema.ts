@@ -5,6 +5,14 @@ export const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(20),
+});
+
+export const logoutSchema = z.object({
+  refreshToken: z.string().min(20).optional(),
+});
+
 export const registerAdminSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),

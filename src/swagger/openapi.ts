@@ -105,7 +105,47 @@ export const openApiDocument = {
             },
           },
         },
-        responses: { "200": { description: "JWT token and user" } },
+        responses: {
+          "200": {
+            description: "accessToken, refreshToken (7d), user",
+          },
+        },
+      },
+    },
+    "/auth/refresh": {
+      post: {
+        tags: ["Auth"],
+        summary: "Rotate refresh token and get new access token",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["refreshToken"],
+                properties: { refreshToken: { type: "string" } },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "New token pair" } },
+      },
+    },
+    "/auth/logout": {
+      post: {
+        tags: ["Auth"],
+        summary: "Revoke refresh token",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { refreshToken: { type: "string" } },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "Logged out" } },
       },
     },
     "/auth/bootstrap": {

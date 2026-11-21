@@ -30,7 +30,17 @@ export function authenticate(
   }
   const token = header.slice(7);
   try {
-    req.auth = jwt.verify(token, env.jwtSecret) as AuthPayload;
+    const decoded = jwt.verify(token, env.jwtSecret) as AuthPayload & {
+      type?: string;
+    };
+    if (decoded.type && decoded.type !== "access") {
+      return next(new AppError(401, "Access token required"));
+    }
+    req.auth = {
+      userId: decoded.userId,
+      role: decoded.role,
+      locationId: decoded.locationId,
+    };
     next();
   } catch {
     next(new AppError(401, "Invalid or expired token"));

@@ -10,6 +10,12 @@ export const env = {
   port: Number(process.env.PORT ?? 4000),
   nodeEnv: process.env.NODE_ENV ?? "development",
   jwtSecret: requireEnv("JWT_SECRET", "dev-secret-change-in-production"),
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
+  /** @deprecated use jwtAccessExpiresIn */
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1h",
+  jwtAccessExpiresIn:
+    process.env.JWT_ACCESS_EXPIRES_IN ??
+    process.env.JWT_EXPIRES_IN ??
+    "1h",
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d",
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
 };

@@ -2,7 +2,12 @@ import { Router } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authenticate, requireRoles, resolveLocation } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validate.js";
-import { loginSchema, registerAdminSchema } from "../schemas/auth.schema.js";
+import {
+  loginSchema,
+  logoutSchema,
+  refreshSchema,
+  registerAdminSchema,
+} from "../schemas/auth.schema.js";
 import { memberCreateSchema } from "../schemas/member.schema.js";
 import * as auth from "../controllers/auth.controller.js";
 import * as dashboard from "../controllers/dashboard.controller.js";
@@ -27,6 +32,8 @@ apiRouter.get("/health", (_req, res) => {
 });
 
 apiRouter.post("/auth/login", validateBody(loginSchema), asyncHandler(auth.login));
+apiRouter.post("/auth/refresh", validateBody(refreshSchema), asyncHandler(auth.refresh));
+apiRouter.post("/auth/logout", validateBody(logoutSchema), asyncHandler(auth.logout));
 apiRouter.post(
   "/auth/bootstrap",
   validateBody(registerAdminSchema),

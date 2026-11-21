@@ -32,7 +32,9 @@ OpenAPI JSON: `http://localhost:4000/api/docs/openapi.json`
 | Email | `sarah@gympro.local` |
 | Password | `admin123` |
 
-Send header: `Authorization: Bearer <token>`
+Send header: `Authorization: Bearer <accessToken>`
+
+Login javobi: `accessToken` (default 1 soat), `refreshToken` (**7 kun**). Yangilash: `POST /auth/refresh` body `{ "refreshToken": "..." }`. Chiqish: `POST /auth/logout`.
 
 Optional multi-location header: `X-Location-Id: <locationId>`
 
